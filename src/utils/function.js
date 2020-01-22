@@ -30,7 +30,16 @@ const exportExcel = (name, elem) => {
 const height = (that, nums) => {
   return (that.$el.clientHeight - nums).toString()
 }
+const toTreeData = (source, id, parentId, children) => {
+  let cloneData = JSON.parse(JSON.stringify(source))
+  return cloneData.filter(father => {
+    let branchArr = cloneData.filter(child => father[id] === child[parentId])
+    father[children] = branchArr.length > 0 ? branchArr : []
+    return father[parentId] === 0
+  })
+}
 export {
   exportExcel,
-  height
+  height,
+  toTreeData
 }

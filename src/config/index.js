@@ -3,7 +3,8 @@ export default {
     dev: {
       normal: '/nginx/',
       done: '/test/',
-      obtain: '/obtain/'
+      obtain: '/obtain/',
+      ty: '/ty/'
     },
     pro: {
       done: '/api/',

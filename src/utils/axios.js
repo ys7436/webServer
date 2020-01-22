@@ -15,7 +15,10 @@ class HttpRequest {
     const config = {
       baseURL: this.baseUrl,
       headers: {
-        'Content-Type': !this.status ? 'application/json;charset=utf-8' : 'application/x-www-form-urlencoded'
+        // responseType: 'arraybuffer',
+        'Content-Type': 'application/x-www-form-urlencoded'
+        // 'Content-Type': !this.status ? 'application/json;charset=utf-8' : 'application/x-www-form-urlencoded'
+        // 891f811e-d34d-486a-963a-e1803d3576df
       },
       timeout: 100000
     }
@@ -47,6 +50,10 @@ class HttpRequest {
       //   Router.replace({ name: 'login' })
       // }
       // 参数 c 代表形参（取消函数）执行c，取消这次请求
+      // 20c3f16a-ce7f-492e-b6a6-b6c802eb7c44
+      if (config.baseURL.indexOf('ty') !== -1) {
+        config.headers.Authorization = 'Bearer ' + '72aa50c1-34e4-4417-87d0-8d220dced92f'
+      }
       let key = config.url + '&' + config.method
       this.removePending(key, true)
       config.cancelToken = new CancleToken((c) => {
@@ -90,9 +97,23 @@ class HttpRequest {
     }, config)
     return this.request(options)
   }
+  delete (url, config) {
+    const options = Object.assign({
+      method: 'delete',
+      url: url
+    }, config)
+    return this.request(options)
+  }
   post (url, data) {
     return this.request({
       method: 'post',
+      url: url,
+      data: data
+    })
+  }
+  put (url, data) {
+    return this.request({
+      method: 'put',
       url: url,
       data: data
     })

@@ -7,15 +7,13 @@
         </el-form-item>
         <el-form-item label="角色：" prop="role">
           <el-select v-model="ruleForm.role" placeholder="请选择角色" @change="roleChange" filterable>
-            <el-option label="街道一" value="j1"></el-option>
-            <el-option label="街道二" value="j2"></el-option>
+            <el-option v-for="option in roleListData" :key="option.id" :label="option.roleName" :value="option.id"></el-option>
           </el-select>
         </el-form-item>
         <tree-data class="el-form-item el-form-item--feedback" :company="ruleForm.company" :treeData="treeData" leftNumber="100px" @changeCompany="changeCompany"></tree-data>
         <el-form-item label="责任区域：" prop="region">
           <el-select v-model="ruleForm.region" placeholder="请选择责任区域" @change="regionChange" filterable>
-            <el-option label="街道一" value="j1"></el-option>
-            <el-option label="街道二" value="j2"></el-option>
+            <el-option v-for="option in regionListData" :key="option.id" :label="option.officeName" :value="option.id"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -24,7 +22,7 @@
           <el-button type="primary" icon="el-icon-circle-plus" @click="addForm">添加</el-button>
           <el-button type="danger" icon="el-icon-set-up" @click="resetPassword">重置密码</el-button>
           <el-button type="danger" icon="el-icon-delete" @click="deleteForm">删除</el-button>
-          <el-button type="success" icon="el-icon-download" @click="exportForm('单位用户数据表')">导出</el-button>
+          <el-button type="success" icon="el-icon-download" @click="exportForm">导出</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -45,10 +43,7 @@
           <tree-data class="el-form-item el-form-item--feedback" :company="ruleDialog.company" :treeData="treeData" leftNumber="100px" @changeCompany="dialogCompany"></tree-data>
           <el-form-item label="角色：" prop="role">
             <el-select class="blockInput" v-model="ruleDialog.role" placeholder="请选择角色" @change="roleDialog" filterable>
-              <el-option label="小区经理" value="1"></el-option>
-              <el-option label="小区员工" value="2"></el-option>
-              <el-option label="区域经理" value="3"></el-option>
-              <el-option label="区域回收员" value="4"></el-option>
+              <el-option v-for="option in roleListData" :key="option.id" :label="option.roleName" :value="option.id"></el-option>
             </el-select>
           </el-form-item>
           <el-collapse-transition>
@@ -64,15 +59,15 @@
           </el-collapse-transition>
           <el-form-item label="责任区域：" prop="region">
             <el-select class="blockInput" v-model="ruleDialog.region" placeholder="请选择责任区域" multiple collapse-tags filterable>
-              <el-option label="街道一" value="j1"></el-option>
-              <el-option label="街道二" value="j2"></el-option>
+              <el-option v-for="option in regionListData" :key="option.id" :label="option.officeName" :value="option.id"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="是否启用：" class="bottomNone" prop="isEnable">
-            <el-radio-group v-model="ruleDialog.isEnable">
-              <el-radio label="1">启用</el-radio>
-              <el-radio label="2">停用</el-radio>
-            </el-radio-group>
+            <el-switch
+              v-model="ruleDialog.isEnable"
+              active-text="是"
+              inactive-text="否">
+            </el-switch>
           </el-form-item>
         </el-form>
       </div>
@@ -88,9 +83,12 @@
 import TableColum from '../../common/tablecolum'
 import TreeData from '../../common/treeData'
 import PageSize from '../../common/pageSize'
-import { getTree } from '../../../api/slidebar'
 import { tableEvent } from '../../../utils/mixin'
 import { languageList } from '../../../utils/validate'
+import { enterpriseList, regionList, deleteMassesList, exportTable, addEnterpriseUser, updateList } from '../../../api/system/enterprise'
+import { roleList } from '../../../api/system/role'
+import { toTreeData } from '../../../utils/function'
+import { treeList, defaultPwd } from '../../../api/system/company'
 export default {
   name: 'enterprise',
   data () {
@@ -103,21 +101,14 @@ export default {
         role: ''
       },
       tableHead: [
-        { align: 'center', prop: 'name', name: '姓名', width: '150' },
-        { align: 'center', prop: 'accountNumber', name: '账号', width: '200' },
+        { align: 'center', prop: 'realName', name: '姓名', width: '150' },
+        { align: 'center', prop: 'phone', name: '账号', width: '200' },
         { align: 'center', prop: 'company', name: '归属企业', width: '180' },
-        { align: 'center', prop: 'role', name: '角色', width: '180' },
-        { align: 'left', prop: 'region', name: '责任区域', width: 'auto' },
-        { align: 'center', prop: 'status', name: '状态', width: '150' }
+        { align: 'center', prop: 'roleName', name: '角色', width: '180' },
+        { align: 'left', prop: 'offices', name: '责任区域', width: 'auto' },
+        { align: 'center', prop: 'delFlag', name: '状态', width: '150' }
       ],
-      tableData: [
-        { name: '王小虎1', accountNumber: '34012126661', company: '庐阳交警大队', role: '系统管理员1', region: '庐阳区', status: '已分配' },
-        { name: '王小虎2', accountNumber: '34012126662', company: '庐阳交警大队', role: '系统管理员2', region: '庐阳区', status: '已分配' },
-        { name: '王小虎3', accountNumber: '34012126663', company: '庐阳交警大队', role: '系统管理员3', region: '庐阳区', status: '已分配' },
-        { name: '王小虎4', accountNumber: '34012126664', company: '庐阳交警大队', role: '系统管理员4', region: '庐阳区', status: '已分配' },
-        { name: '王小虎5', accountNumber: '34012126665', company: '庐阳交警大队', role: '系统管理员5', region: '庐阳区', status: '已分配' },
-        { name: '王小虎6', accountNumber: '34012126666', company: '庐阳交警大队', role: '系统管理员6', region: '庐阳区', status: '已分配' }
-      ],
+      tableData: [],
       tableStatus: '2',
       treeData: [],
       ruleDialog: {
@@ -127,34 +118,117 @@ export default {
         region: [],
         role: '',
         superior: '',
-        isEnable: '1'
+        isEnable: true
       },
       ruleValidata: {
         name: [{ required: true, message: languageList.name, trigger: 'blur' }],
         phone: [{ required: true, message: languageList.user, trigger: 'blur' }],
-        company: [{ required: true, message: languageList.comapny, trigger: 'blur' }],
+        company: [{ required: true, message: languageList.comapny, trigger: 'change' }],
         region: [{ required: true, message: languageList.region, trigger: 'change' }],
         role: [{ required: true, message: languageList.role, trigger: 'change' }],
         superior: [{ required: true, message: languageList.superior, trigger: 'change' }],
         isEnable: [{ required: true, message: languageList.isOff, trigger: 'change' }]
       },
-      showSuperior: false
+      showSuperior: false,
+      roleListData: [],
+      regionListData: [],
+      dialogStatus: null,
+      userId: null
     }
   },
   mixins: [tableEvent],
   mounted () {
-    getTree().then(res => {
-      this.treeData = res.data
-    }).catch(_ => {
-      console.log('树级列表获取出错')
-    })
-  },
-  components: {
-    TableColum,
-    TreeData,
-    PageSize
+    this.initTable()
+    this.getRoleList()
+    this.getRegionList()
+    this.getTreeList()
   },
   methods: {
+    getTreeList () {
+      treeList().then(res => {
+        if (res.code === 0) {
+          this.treeData = toTreeData(res.data, 'id', 'parentId', 'children')
+        } else {
+          this.$notify.error({
+            title: '错误',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '错误',
+          message: '服务器获取数据异常'
+        })
+      })
+    },
+    getRegionList () {
+      regionList().then(res => {
+        if (res.code === 0) {
+          this.regionListData = res.data.rows
+        } else {
+          this.$notify.error({
+            title: '责任区域',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '出错',
+          message: '服务器数据获取失败'
+        })
+      })
+    },
+    getRoleList () {
+      roleList('2').then(res => {
+        if (res.code === 0) {
+          this.roleListData = res.data
+        } else {
+          this.$notify.error({
+            title: '错误',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '错误',
+          message: '服务器获取数据异常'
+        })
+      })
+    },
+    initConfig () {
+      const that = this.ruleForm
+      return {
+        pageNum: this.currentPage,
+        pageSize: this.pageSize,
+        keyword: that.username, // 名称
+        companyId: '', // 机构
+        roleId: '', // 角色
+        officeId: '' // 责任区域
+      }
+    },
+    initTable () {
+      const data = this.initConfig()
+      this.loading = true
+      enterpriseList(data).then(res => {
+        if (res.code === 0) {
+          this.tableData = res.data.rows
+          this.total = res.data.total
+        } else {
+          this.$notify({
+            title: '警告',
+            message: res.msg,
+            type: 'warning'
+          })
+        }
+        this.loading = false
+      }).catch(() => {
+        this.$notify.error({
+          title: '错误',
+          message: '服务器获取数据异常'
+        })
+        this.loading = false
+      })
+    },
     submitForm (formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
@@ -171,9 +245,29 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.$message({
-          type: 'success',
-          message: '密码重置成功!'
+        if (!this.multipleSelection || this.multipleSelection.length <= 0) return
+        const config = {
+          ids: this.multipleSelection.join(','),
+          type: '1'
+        }
+        defaultPwd(config).then(res => {
+          if (res.code === 0) {
+            this.$notify({
+              title: '重置成功',
+              message: res.msg,
+              type: 'success'
+            })
+          } else {
+            this.$notify.error({
+              title: '重置失败',
+              message: res.msg
+            })
+          }
+        }).catch(() => {
+          this.$notify.error({
+            title: '错误',
+            message: '服务器获取数据异常'
+          })
         })
       }).catch(() => {
         this.$message({
@@ -182,7 +276,9 @@ export default {
         })
       })
     },
-    deleteForm () {},
+    deleteForm () {
+      this.initDelete(this.multipleSelection.join(','), false)
+    },
     roleChange (val) {
       console.log(val)
     },
@@ -190,19 +286,19 @@ export default {
       console.log(val)
     },
     editMessage (val) {
-      const { name, company, accountNumber } = val
-      const roleVal = '2'
+      this.dialogStatus = 2
+      this.userId = val.id
+      const arr = (val.officeIds).split(',')
       this.dialogVisible = true
-      this.ruleDialog.name = name
-      this.ruleDialog.company = company
-      this.ruleDialog.phone = accountNumber
-      this.ruleDialog.region = ['j1', 'j2']
-      this.ruleDialog.role = roleVal
-      if (roleVal === '1' || roleVal === '3') this.showSuperior = true
+      this.ruleDialog.name = val.realName
+      this.ruleDialog.phone = val.phone
+      this.ruleDialog.region = arr.map(Number)
+      this.ruleDialog.role = Number(val.roleId)
+      if (val.roleId.toString() === '9') this.showSuperior = true
       else this.showSuperior = false
     },
-    deleteRow (val) {
-      console.log('删除此行', val)
+    deleteRow (row) {
+      this.initDelete(row, true)
     },
     changeCompany (val) {
       this.ruleForm.company = val.data.label
@@ -210,19 +306,161 @@ export default {
     editDetail (fromNode) {
       this.$refs[fromNode].validate((valid) => {
         if (valid) {
-          console.log(this.ruleDialog)
+          const config = {
+            realName: this.ruleDialog.name,
+            phone: this.ruleDialog.phone,
+            companyId: this.ruleDialog.company,
+            roleId: this.ruleDialog.role,
+            officeIds: this.ruleDialog.region.join(','),
+            enabled: this.ruleDialog.isEnable ? '0' : '1'
+          }
+          if (this.dialogStatus === 1) {
+            addEnterpriseUser(config).then(res => {
+              if (res.code === 0) {
+                this.$notify({
+                  title: '添加成功',
+                  message: res.msg,
+                  type: 'success'
+                })
+              } else {
+                this.$notify.error({
+                  title: '添加失败',
+                  message: res.msg
+                })
+              }
+              this.dialogVisible = false
+            }).catch(() => {
+              this.$notify.error({
+                title: '错误',
+                message: '服务器获取数据异常'
+              })
+            })
+          } else if (this.dialogStatus === 2) {
+            config.id = this.userId
+            updateList(config).then(res => {
+              if (res.code === 0) {
+                this.$notify({
+                  title: '更新成功',
+                  message: res.msg,
+                  type: 'success'
+                })
+              } else {
+                this.$notify.error({
+                  title: '错误',
+                  message: res.msg
+                })
+              }
+              this.dialogVisible = false
+            }).catch(() => {
+              this.$notify.error({
+                title: '错误',
+                message: '访问服务器失败'
+              })
+            })
+          }
         } else {
           return false
         }
       })
     },
     dialogCompany (val) {
-      this.ruleDialog.company = val
+      this.ruleDialog.company = (val.data.id).toString()
     },
     roleDialog (val) {
-      if (val === '1' || val === '3') this.showSuperior = true
+      if (val.toString() === '9') this.showSuperior = true
       else this.showSuperior = false
+    },
+    deleteClick (row) {
+      this.initDelete(row, true)
+    },
+    deleteTable () {
+      this.initDelete(this.multipleSelection.join(','), false)
+    },
+    initDelete (row, status) {
+      this.$confirm('是否确定删除此条记录', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        let params = ''
+        if (status) params = row.id
+        else params = row
+        deleteMassesList(params).then(res => {
+          if (res.code === 0) {
+            this.$notify({
+              title: '成功',
+              message: res.msg,
+              type: 'success'
+            })
+            if (status) {
+              const index = this.tableData.indexOf(row)
+              if (this.multipleSelection.length > 0) {
+                const deleteAllIndex = this.multipleSelection.indexOf(String(row.id))
+                if (deleteAllIndex !== -1) this.multipleSelection.splice(deleteAllIndex, 1)
+              }
+              this.tableData.splice(index, 1)
+            } else {
+              for (let i = 0; i < this.tableData.length; i++) {
+                for (let j = 0; j < this.multipleSelection.length; j++) {
+                  if ((this.tableData[i].id).toString() === (this.multipleSelection[j]).toString()) this.tableData.splice(i, 1)
+                }
+              }
+            }
+          } else {
+            this.$notify.error({
+              title: '出错',
+              message: res.msg
+            })
+          }
+        }).catch(() => {
+          this.$notify.error({
+            title: '出错',
+            message: '访问服务器失败'
+          })
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        })
+      })
+    },
+    exportTable () {
+      const config = Object.assign({}, this.initConfig())
+      delete config.pageSize
+      delete config.pageNum
+      exportTable(config).then(res => {
+        if (res.code === 0) {
+          window.location.href = 'http://119.3.244.219:80/recycle/common/download?fileName=' + res.msg + '&delete=0'
+        } else {
+          this.$notify.error({
+            title: '出错',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '出错',
+          message: '访问服务器失败'
+        })
+      })
+    },
+    resetForm () {
+      for (let i in this.ruleDialog) {
+        if (i === 'region') {
+          this.ruleDialog[i] = []
+        } else if (i === 'isEnable') {
+          this.ruleDialog[i] = '0'
+        } else {
+          this.ruleDialog[i] = ''
+        }
+      }
     }
+  },
+  components: {
+    TableColum,
+    TreeData,
+    PageSize
   }
 }
 </script>

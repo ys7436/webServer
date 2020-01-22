@@ -11,7 +11,7 @@
         </div>
         <el-scrollbar :native="false" tag="div" class="treeScroll">
           <el-tree
-            :default-expand-all="expand" :render-content="renderContent" @check="checkedList" node-key="label" :show-checkbox="checked" ref="tree"
+            :default-expand-all="expand" :render-content="renderContent" @check="checkedList" node-key="id" :show-checkbox="checked" ref="tree"
             :check-strictly="strictly" :data="treeData" :props="defaultProps" @node-click="handleNodeClick" :filter-node-method="filterNode"></el-tree>
         </el-scrollbar>
       </div>
@@ -60,7 +60,7 @@ export default {
     return {
       defaultProps: {
         children: 'children',
-        label: 'label'
+        label: 'officeName'
       },
       isTree: false,
       treeMessage: this.company,
@@ -69,23 +69,23 @@ export default {
     }
   },
   watch: {
-    company () {
-      this.treeMessage = this.company
-    },
+    // company () {
+    //   this.treeMessage = this.company
+    // },
     filterText (val) {
       this.$refs.tree.filter(val)
     }
   },
   methods: {
     handleNodeClick (data, node, event) {
-      if (!data.children) {
-        this.treeMessage = data.label
+      if (!data.children || data.children.length === 0) {
+        this.treeMessage = data.officeName
         this.changeTree({ data: data, node: node, event: event })
       }
     },
     filterNode (value, data) {
       if (!value) return true
-      return data.label.indexOf(value) !== -1
+      return data.officeName.indexOf(value) !== -1
     },
     changeTree (data) {
       this.$emit('changeCompany', data)

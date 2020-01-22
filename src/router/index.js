@@ -63,14 +63,14 @@ const router = new VueRouter({
 })
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('isToken') || sessionStorage.getItem('isToken')
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'))
+  const userInfo = JSON.parse((localStorage.getItem('userInfo')) || (sessionStorage.getItem('userInfo')))
   if (token !== '' && userInfo) {
     store.commit('setUserInfo', userInfo)
     store.commit('setToken', token)
     store.commit('setIslogin', true)
     next()
   } else {
-    store.commit('setUserInfo', '')
+    store.commit('setUserInfo', {})
     store.commit('setToken', '')
     store.commit('setIslogin', false)
     next('/login')

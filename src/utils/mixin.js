@@ -1,4 +1,3 @@
-import { exportExcel } from './function'
 export const tableEvent = {
   data () {
     return {
@@ -19,14 +18,18 @@ export const tableEvent = {
       this.$refs[formName].resetFields()
     },
     editCheckBox (val) {
-      this.multipleSelection = val
+      this.multipleSelection = []
+      for (let i = 0; i < val.length; i++) {
+        this.multipleSelection.push(String(val[i].id))
+      }
     },
     exportForm (val) {
-      const title = val.length > 0 ? val : '导出数据表'
-      exportExcel(title, '.table')
+      this.exportTable()
     },
     addForm () {
       this.dialogVisible = true
+      this.resetForm()
+      this.dialogStatus = 1
     },
     tableSize (val) {
       this.pageSize = val
@@ -37,7 +40,7 @@ export const tableEvent = {
       this.tableRender()
     },
     tableRender () {
-      console.log({ page: this.currentPage, limit: this.pageSize })
+      this.initTable()
     },
     handleClose () {
       this.dialogVisible = false

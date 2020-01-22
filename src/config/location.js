@@ -12,8 +12,13 @@ const doneBaseUrl = status === 'development'
 const loginBaseUrl = status === 'development'
   ? config.baseUrl.dev.obtain
   : config.baseUrl.pro.public
+
+const addBaseUrl = status === 'development'
+  ? config.baseUrl.dev.ty
+  : config.baseUrl.pro.public
 export {
   normalBaseUrl,
   doneBaseUrl,
-  loginBaseUrl
+  loginBaseUrl,
+  addBaseUrl
 }

@@ -24,6 +24,12 @@ module.exports = {
           '^/obtain': ''
         }
       },
+      '/ty': {
+        target: 'https://testapi.utools.club/',
+        pathRewrite: {
+          '^/ty': ''
+        }
+      },
       '/api': {
         target: 'http://119.3.244.219:10050/',
         pathRewrite: {

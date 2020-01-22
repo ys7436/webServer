@@ -55,8 +55,10 @@ export default {
       this.$emit('deleteRow', row)
     },
     formatter (row, column, cellValue) {
-      if (column.property === 'start' && row.start) return '已起用'
-      else if (column.property === 'start' && !row.start) return '未起用'
+      if (column.property === 'enabled' && String(row.enabled) === '0') return '已起用'
+      else if (column.property === 'enabled' && String(row.enabled) === '1') return '未起用'
+      if (column.property === 'delFlag' && String(row.delFlag) === '0') return '已起用'
+      else if (column.property === 'delFlag' && String(row.delFlag) === '1') return '未起用'
       else {
         if (cellValue === null) return '无'
         else return cellValue

@@ -41,20 +41,21 @@
           </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="el-icon-search" @click="submitForm('ruleForm')">查询</el-button>
+            <el-button type="danger" icon="el-icon-delete" @click="deleteTable">删除</el-button>
+            <el-button type="success" icon="el-icon-download" @click="exportTable">导出</el-button>
             <el-button icon="el-icon-refresh" @click="resetForm('ruleForm')">重置</el-button>
           </el-form-item>
         </el-form>
       </div>
       <div class="whiteTable">
         <el-table v-loading="loading" element-loading-text="拼命加载中" element-loading-spinner="el-icon-loading" element-loading-background="rgba(0, 0, 0, 0.8)" class="table"
-                  :max-height="heightAll" desc="{prop: 'login', order: 'descending'}" :data="tableData" border style="width: 100%" tooltip-effect="dark" :stripe="true" @selection-change="editCheckBox">
+                  :max-height="heightAll" :data="tableData" border style="width: 100%" tooltip-effect="dark" :stripe="true" @selection-change="editCheckBox">
           <el-table-column fixed align="center" type="selection" width="40"></el-table-column>
           <el-table-column label="姓名" prop="reaName" width="120" align="center">
             <template slot-scope="scope">
-              <span v-if="scope.column.property === 'reaName' && scope.row.icon !== ''">
-                <img class="scopeImg" :src="scope.row.avatar ? scope.row.avatar : headImg" alt="" /> {{ scope.column.label ? scope.column.label : '' }}
+              <span>
+                <img class="scopeImg" :src="scope.row.avatar ? scope.row.avatar : headImg" alt="" /> {{ scope.row.reaName ? scope.row.reaName : '' }}
               </span>
-              <span v-else>{{ scope.column.label ? scope.column.label : '' }}</span>
             </template>
           </el-table-column>
           <el-table-column :formatter="formatter" label="身份证" prop="certificate" width="200" align="center"></el-table-column>
@@ -69,11 +70,24 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column :formatter="formatter" sortable label="注册日期" prop="createTime" width="180" align="center"></el-table-column>
-          <el-table-column :formatter="formatter" sortable label="最后登录" prop="lastLoginTime" width="180" align="center"></el-table-column>
-          <el-table-column :formatter="formatter" fixed="right" label="操作" width="120" align="center">
+          <el-table-column sortable label="注册日期" prop="createTime" width="180" align="center">
+            <template slot-scope="scope">
+              <span>
+                {{ scope.row.createTime !== null ? (scope.row.createTime).split(' ')[0] : '' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column sortable label="最后登录" prop="lastLoginTime" width="180" align="center">
+            <template slot-scope="scope">
+              <span>
+                {{ scope.row.lastLoginTime !== null ? (scope.row.lastLoginTime).split(' ')[0] : '' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :formatter="formatter" fixed="right" label="操作" width="180" align="center">
             <div slot-scope="scope">
               <el-button icon="el-icon-zoom-in" @click="editMessage(scope.row)" type="primary" size="mini">查看</el-button>
+              <el-button @click="deleteClick(scope.row)" type="danger" icon="el-icon-delete" size="mini">删除</el-button>
             </div>
           </el-table-column>
         </el-table>
@@ -82,7 +96,7 @@
     </div>
     <transition mode="out-in" name="slideSwiper">
       <div class="massesDetail" v-if="!isDetail">
-        <masses-flag :massesDetail="massesDetail">
+        <masses-flag :massesDetail="massesDetail" :massesUserDetail="massesUserDetail">
           <el-button plain icon="el-icon-back" class="goBack" slot="back" @click="goBack">返回</el-button>
         </masses-flag>
       </div>
@@ -96,7 +110,7 @@ import TreeData from '../../common/treeData'
 import MassesFlag from './common/massesFlag'
 import { getTree } from '../../../api/slidebar'
 import { height } from '../../../utils/function'
-import { massesTableList } from '../../../api/system/masses'
+import { massesTableList, deleteMassesList, exportTable, massesDetail } from '../../../api/system/masses'
 export default {
   name: 'Masses',
   components: {
@@ -108,7 +122,8 @@ export default {
     return {
       headImg: require('../../../assets/images/head.png'),
       isDetail: true,
-      massesDetail: {},
+      massesDetail: null,
+      massesUserDetail: null,
       labelName: '区域：',
       loading: false,
       selectType: false,
@@ -123,7 +138,7 @@ export default {
       },
       rule: {},
       tableData: [],
-      multipleSelection: null,
+      multipleSelection: [],
       dialogVisible: false,
       total: 400,
       pageSize: 20,
@@ -165,7 +180,6 @@ export default {
       const data = this.initConfig()
       this.loading = true
       massesTableList(data).then(res => {
-        console.log(res)
         if (res.code === 0) {
           this.tableData = res.data.rows
           this.total = res.data.total
@@ -205,11 +219,31 @@ export default {
       this.$refs[formName].resetFields()
     },
     editCheckBox (val) {
-      this.multipleSelection = val
+      this.multipleSelection = []
+      for (let i = 0; i < val.length; i++) {
+        this.multipleSelection.push(String(val[i].id))
+      }
     },
     editMessage (val) {
-      this.isDetail = false
-      console.log(val)
+      massesDetail(String(val.id)).then(res => {
+        if (res.code === 0) {
+          let arr = res.data
+          arr.sort((a, b) => b.isLive - a.isLive)
+          this.massesDetail = arr
+          this.massesUserDetail = val
+          this.isDetail = false
+        } else {
+          this.$notify.error({
+            title: '出错',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '出错',
+          message: '访问服务器失败'
+        })
+      })
     },
     tableSize (val) {
       this.pageSize = val
@@ -225,6 +259,81 @@ export default {
     formatter (row, column, cellValue) {
       if (cellValue === null) return ''
       else return cellValue
+    },
+    deleteClick (row) {
+      this.initDelete(row, true)
+    },
+    deleteTable () {
+      this.initDelete(this.multipleSelection.join(','), false)
+    },
+    initDelete (row, status) {
+      this.$confirm('是否确定删除此条记录', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        let params = ''
+        if (status) params = row.id
+        else params = row
+        deleteMassesList(params).then(res => {
+          if (res.code === 0) {
+            this.$notify({
+              title: '成功',
+              message: res.msg,
+              type: 'success'
+            })
+            if (status) {
+              const index = this.tableData.indexOf(row)
+              if (this.multipleSelection.length > 0) {
+                const deleteAllIndex = this.multipleSelection.indexOf(String(row.id))
+                if (deleteAllIndex !== -1) this.multipleSelection.splice(deleteAllIndex, 1)
+              }
+              this.tableData.splice(index, 1)
+            } else {
+              for (let i = 0; i < this.tableData.length; i++) {
+                for (let j = 0; j < this.multipleSelection.length; j++) {
+                  if ((this.tableData[i].id).toString() === (this.multipleSelection[j]).toString()) this.tableData.splice(i, 1)
+                }
+              }
+            }
+          } else {
+            this.$notify.error({
+              title: '出错',
+              message: res.msg
+            })
+          }
+        }).catch(() => {
+          this.$notify.error({
+            title: '出错',
+            message: '访问服务器失败'
+          })
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        })
+      })
+    },
+    exportTable () {
+      const config = Object.assign({}, this.initConfig())
+      delete config.pageSize
+      delete config.pageNum
+      exportTable(config).then(res => {
+        if (res.code === 0) {
+          window.location.href = 'http://119.3.244.219:80/recycle/common/download?fileName=' + res.msg + '&delete=0'
+        } else {
+          this.$notify.error({
+            title: '出错',
+            message: res.msg
+          })
+        }
+      }).catch(() => {
+        this.$notify.error({
+          title: '出错',
+          message: '访问服务器失败'
+        })
+      })
     }
   }
 }
